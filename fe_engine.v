@@ -16,8 +16,8 @@ module fe_engine #(
     output wire [8:0] out_index, output wire [7:0] out_data,
     output wire out_last, output wire busy, output wire error
 );
-    localparam integer WORDS=(OSSM != 0) ? 12785 : 1117;
-    localparam [13:0] DEN_BASE=(OSSM != 0) ? 14'd12145 : 14'd477;
+    localparam integer WORDS=(OSSM != 0) ? 6785 : 1117;
+    localparam [13:0] DEN_BASE=(OSSM != 0) ? 14'd6145 : 14'd477;
     localparam [4:0] IDLE=0, NORM_INV=1, NORM_BIAS=2,
         TAP_RE=3, TAP_IM=4, MAC_RESULT=5, SQRT_WAIT=6, ROTATE_LOAD=7,
         PROCESS_START=8, GAIN_LOAD=10, STEP_START=11,
@@ -143,11 +143,18 @@ module fe_engine #(
     wire step_accept = (action==STEP_WAIT) & step_valid;
     genvar element;
     generate if (OSSM != 0) begin: g_ossm
+        // Two signed Q13 gains share each parameter word. Restore Q22 with
+        // sign extension and nine zero LSBs, leaving the arithmetic unchanged.
+        wire [191:0] packed_gains;
+        for (element=0; element<8; element=element+1) begin: g_gain_words
+            fe_dffl #(24) u_gain(clk,(action==GAIN_LOAD) & (load_index==element),
+                parameter_data,packed_gains[element*24 +: 24]);
+        end
         for (element=0; element<16; element=element+1) begin: g_coefficients
             fe_dffl #(24) u_rotation(clk,(action==ROTATE_LOAD) & (load_index==element),
                                      parameter_data,rotation[element*24 +: 24]);
-            fe_dffl #(24) u_gain(clk,(action==GAIN_LOAD) & (load_index==element),
-                                 parameter_data,gains[element*24 +: 24]);
+            wire [11:0] stored_gain = packed_gains[element*12 +: 12];
+            assign gains[element*24 +: 24] = {{3{stored_gain[11]}},stored_gain,9'd0};
         end
         fe_dffl #(24) u_alpha(clk,(action==ROTATE_LOAD) & (load_index==5'd16),parameter_data,alpha);
         fe_ram #(544,64,6) u_states(clk,step_accept,channel,
@@ -231,7 +238,7 @@ module fe_engine #(
         ({5{state==SQRT_WAIT}} & (magnitude_accept ? ((channel_last & frequency_last) ? PROCESS_START : TAP_RE) : SQRT_WAIT)) |
         ({5{state==ROTATE_LOAD}} & ((load_index==5'd16) ? PROCESS_START : ROTATE_LOAD)) |
         ({5{state==PROCESS_START}} & ((OSSM != 0) ? GAIN_LOAD : POOL)) |
-        ({5{state==GAIN_LOAD}} & ((load_index==5'd15) ? STEP_START : GAIN_LOAD)) |
+        ({5{state==GAIN_LOAD}} & ((load_index==5'd7) ? STEP_START : GAIN_LOAD)) |
         ({5{state==STEP_START}} & (step_ready ? STEP_WAIT : STEP_START)) |
         ({5{state==STEP_WAIT}} & (step_accept ? POOL : STEP_WAIT)) |
         ({5{state==POOL}} & (pool_last ? DEN_LOW : after_pool)) |
@@ -252,7 +259,7 @@ module fe_engine #(
         ({14{state==TAP_RE}} & tap_address) |
         ({14{state==TAP_IM}} & tap_address) |
         ({14{state==ROTATE_LOAD}} & (14'd128+{9'd0,load_index})) |
-        ({14{state==GAIN_LOAD}} & (14'd145+{4'd0,age}*14'd16+{9'd0,load_index})) |
+        ({14{state==GAIN_LOAD}} & (14'd145+{4'd0,age}*14'd8+{9'd0,load_index})) |
         ({14{state==DEN_LOW}} & (DEN_BASE+{5'd0,feature_index}*14'd2)) |
         ({14{state==DEN_HIGH}} & (DEN_BASE+{5'd0,feature_index}*14'd2+14'd1));
     wire arithmetic_error = ((action==NORM_BIAS) & input_overflow) |
