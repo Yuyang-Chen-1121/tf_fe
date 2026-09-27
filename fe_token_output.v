@@ -36,14 +36,21 @@ module fe_token_output #(parameter integer FREQUENCY_MAJOR = 0) (
     wire [8:0] byte_next = (clear | token_end) ? 9'd0 : byte_index+9'd1;
     fe_dfflr #(9) u_byte_index(clk, rst_n, clear | pop, byte_next, byte_index);
 
+    // Look ahead on an accepted byte so synchronous RAM supplies the next
+    // byte without a bubble. Under backpressure the address and data hold.
+    // At each bank boundary wait for a fresh read before asserting out_valid.
+    wire prefetched;
+    fe_dfflr #(1) u_prefetched(clk,rst_n,1'b1,
+        ~clear & valid[reader] & ~drain,prefetched);
+    wire [8:0] fetch_index = (pop & ~token_end) ? byte_index+9'd1 : byte_index;
     wire [8:0] layout_index = (FREQUENCY_MAJOR != 0) ?
-        ({3'd0, byte_index[5:0]}*9'd5 + {6'd0, byte_index[8:6]}) : byte_index;
+        ({3'd0, fetch_index[5:0]}*9'd5 + {6'd0, fetch_index[8:6]}) : fetch_index;
     wire [9:0] read_address = (reader ? 10'd320 : 10'd0) + {1'b0,layout_index};
     wire [9:0] write_address = (writer ? 10'd320 : 10'd0) + {1'b0,write_index};
     fe_ram #(8,640,10) u_memory(clk,push & ~malformed,write_address,
                                write_data,read_address,out_data);
     assign write_ready = ~valid[writer] & ~error & ~clear;
-    assign out_valid = valid[reader] & ~clear;
+    assign out_valid = valid[reader] & prefetched & ~clear;
     assign out_index = byte_index;
     assign out_last = out_valid & token_end;
     assign token_done = drain;
