@@ -1,5 +1,7 @@
 `timescale 1ns/1ps
 // Serial complex dot product with two real multipliers and resident sums.
+// Coefficients are signed 12-bit integers with scale 2^-12. The 64-bit
+// accumulator retains all products; one RNE shift returns a Q20 result.
 // The caller streams causal taps in ANY fixed order, explicitly supplies zero
 // for absent history, and marks the first/last tap of each dot product.
 module fe_cwt_mac (
@@ -7,7 +9,7 @@ module fe_cwt_mac (
     input wire in_valid, output wire in_ready,
     input wire first, input wire last,
     input wire signed [31:0] sample,
-    input wire signed [23:0] coefficient_re, coefficient_im,
+    input wire signed [11:0] coefficient_re, coefficient_im,
     output wire out_valid, input wire out_ready,
     output wire signed [31:0] result_re, result_im,
     output wire overflow
@@ -25,8 +27,8 @@ module fe_cwt_mac (
     wire overflow_re, overflow_im;
     fe_dffl #(64) u_acc_re(clk, accept, sum_re, acc_re);
     fe_dffl #(64) u_acc_im(clk, accept, sum_im, acc_im);
-    fe_rne #(22) u_round_re(sum_re, rounded_re);
-    fe_rne #(22) u_round_im(sum_im, rounded_im);
+    fe_rne #(12) u_round_re(sum_re, rounded_re);
+    fe_rne #(12) u_round_im(sum_im, rounded_im);
     fe_sat32 u_sat_re(rounded_re, next_re, overflow_re);
     fe_sat32 u_sat_im(rounded_im, next_im, overflow_im);
     fe_dffl #(32) u_result_re(clk, finish, next_re, result_re);

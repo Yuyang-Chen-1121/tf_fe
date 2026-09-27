@@ -4,7 +4,7 @@
 // activate is asserted by the engine at a runtime clear/epoch boundary.
 // clear resets loader/errors, but retains the active image and params_valid.
 module fe_config_store #(
-    parameter integer WORDS=1466, ADDR_WIDTH=14
+    parameter integer WORDS=1117, ADDR_WIDTH=14
 ) (
     input wire clk, input wire rst_n, input wire clear, input wire activate,
     input wire [23:0] param_word,

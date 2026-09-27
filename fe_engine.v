@@ -16,8 +16,8 @@ module fe_engine #(
     output wire [8:0] out_index, output wire [7:0] out_data,
     output wire out_last, output wire busy, output wire error
 );
-    localparam integer WORDS=(OSSM != 0) ? 12785 : 1466;
-    localparam [13:0] DEN_BASE=(OSSM != 0) ? 14'd12145 : 14'd826;
+    localparam integer WORDS=(OSSM != 0) ? 12785 : 1117;
+    localparam [13:0] DEN_BASE=(OSSM != 0) ? 14'd12145 : 14'd477;
     localparam [4:0] IDLE=0, NORM_INV=1, NORM_BIAS=2,
         TAP_RE=3, TAP_IM=4, MAC_RESULT=5, SQRT_WAIT=6, ROTATE_LOAD=7,
         PROCESS_START=8, GAIN_LOAD=10, STEP_START=11,
@@ -95,7 +95,8 @@ module fe_engine #(
     fe_dfflr #(8) u_pointer(clk,rst_n,runtime_clear | (action==FINISH),pointer_next,history_pointer);
     fe_dfflr #(8) u_filled(clk,rst_n,runtime_clear | (action==FINISH),filled_next,history_filled);
 
-    wire signed [23:0] coefficient_re;
+    // Packed complex kernel: low real12, high imaginary12, both scaled by 2^-12.
+    wire [23:0] kernel_pair;
     wire mac_valid, mac_ready, mac_overflow;
     wire signed [31:0] mac_re, mac_im;
     wire sqrt_ready, sqrt_valid;
@@ -109,9 +110,9 @@ module fe_engine #(
     generate if ((OSSM == 0)) begin: g_cwt
         fe_ram #(32,12864,14) u_history(clk,action==NORM_BIAS,history_write_address,
             normalized,history_address,history_read);
-        fe_dffl #(24) u_coefficient(clk,action==TAP_RE,parameter_data,coefficient_re);
+        fe_dffl #(24) u_coefficient(clk,action==TAP_RE,parameter_data,kernel_pair);
         fe_cwt_mac u_mac(clk,rst_n,runtime_clear,action==TAP_IM,mac_ready,
-            tap==8'd0,tap_last,history_sample,coefficient_re,$signed(parameter_data),
+            tap==8'd0,tap_last,history_sample,$signed(kernel_pair[11:0]),$signed(kernel_pair[23:12]),
             mac_valid,sqrt_accept,mac_re,mac_im,mac_overflow);
         fe_sqrt u_sqrt(clk,rst_n,runtime_clear,(action==MAC_RESULT) & mac_valid,
             sqrt_ready,radicand,sqrt_valid,action==SQRT_WAIT,magnitude);
@@ -119,7 +120,7 @@ module fe_engine #(
             {31'd0,magnitude},feature_index,cwt_feature);
     end else begin: g_no_cwt
         assign history_read=32'd0;
-        assign coefficient_re=24'd0;
+        assign kernel_pair=24'd0;
         assign mac_ready=1'b0;
         assign mac_valid=1'b0;
         assign mac_overflow=1'b0;
@@ -244,12 +245,12 @@ module fe_engine #(
     fe_dfflr #(5) u_state(clk,rst_n,runtime_clear | execute,state_next,state);
 
     // Mutually exclusive parameter read clients share the active calibration RAM.
-    wire [13:0] tap_address = 14'd128 + ({5'd0,kernel_base}+{6'd0,tap})*14'd2;
+    wire [13:0] tap_address = 14'd128 + {5'd0,kernel_base}+{6'd0,tap};
     assign parameter_address =
         ({14{state==NORM_INV}} & {8'd0,channel}) |
         ({14{state==NORM_BIAS}} & (14'd64+{8'd0,channel})) |
         ({14{state==TAP_RE}} & tap_address) |
-        ({14{state==TAP_IM}} & (tap_address+14'd1)) |
+        ({14{state==TAP_IM}} & tap_address) |
         ({14{state==ROTATE_LOAD}} & (14'd128+{9'd0,load_index})) |
         ({14{state==GAIN_LOAD}} & (14'd145+{4'd0,age}*14'd16+{9'd0,load_index})) |
         ({14{state==DEN_LOW}} & (DEN_BASE+{5'd0,feature_index}*14'd2)) |
