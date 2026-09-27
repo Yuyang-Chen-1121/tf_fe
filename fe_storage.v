@@ -34,7 +34,7 @@ module fe_ram #(
     input wire [WIDTH-1:0] write_data,
     input wire [ADDR_WIDTH-1:0] read_address,
     output wire [WIDTH-1:0] read_data
-);rEvva4-nuwwas-qymsoq
+);
     function integer address_bits;
         input integer depth;
         integer remaining;
