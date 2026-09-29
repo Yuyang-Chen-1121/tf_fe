@@ -1,1 +1,11 @@
 ._*
+
+# Local simulation fixtures (transfer separately). Keep the setup instructions.
+/sim_data/*
+!/sim_data/README_CN.md
+
+# Local simulator builds, waveforms and replay traces.
+/sim_build/
+__pycache__/
+*.pyc
+.DS_Store

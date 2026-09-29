@@ -1,0 +1,62 @@
+{
+  "format_version": 1,
+  "average_count": 50,
+  "frame_count": 1000,
+  "tokens_per_algorithm": 20,
+  "golden_kind": "Python fixed-point continuous-stream reference; not floating-point golden",
+  "source": {
+    "frames": 1000,
+    "average_count": 50,
+    "tokens": 20,
+    "bytes_per_token": 320,
+    "source": "test_ecog window 0 followed by first 250 samples of window 1; deliberate splice",
+    "golden": "Continuous state; pool from first sample; one token per 50 samples"
+  },
+  "files": [
+    {
+      "name": "cwt_payload.memh",
+      "source": "hdl/coeff/cwt_payload.memh",
+      "words": 1117,
+      "hex_digits": 6,
+      "bytes": 7819,
+      "sha256": "ed0fbcbcb5d7f360feb47e82bebd2010e37351c032b692d8f799200c7010be8e",
+      "description": "CWT parameter image: INT12 packed complex kernels"
+    },
+    {
+      "name": "ossm_payload.memh",
+      "source": "hdl/coeff/ossm_payload.memh",
+      "words": 6785,
+      "hex_digits": 6,
+      "bytes": 47495,
+      "sha256": "8756748d6203eb8f6937b79c00cf8740f03671fc8a17440980983ae3c442c2b5",
+      "description": "OSSM parameter image: INT12 packed gains"
+    },
+    {
+      "name": "stream_frames.memh",
+      "source": "hdl/vectors/stream_frames.memh",
+      "words": 1000,
+      "hex_digits": 192,
+      "bytes": 193000,
+      "sha256": "065cd1fe0198f68786bf09db27f24e138b6e7508303de0040c730bfd868d147b",
+      "description": "64 signed12 channels per 768-bit frame; channel 0 in low bits"
+    },
+    {
+      "name": "cwt_stream_golden.memh",
+      "source": "hdl/vectors/cwt_stream_golden.memh",
+      "words": 6400,
+      "hex_digits": 2,
+      "bytes": 19200,
+      "sha256": "43a07421369778f97f18e4ef8490785a0ad08dea87b26975cca30df6736fb310",
+      "description": "CWT fixed-point integer reference, N=50, channel-major"
+    },
+    {
+      "name": "ossm_stream_golden.memh",
+      "source": "hdl/vectors/ossm_stream_golden.memh",
+      "words": 6400,
+      "hex_digits": 2,
+      "bytes": 19200,
+      "sha256": "5ec644a35d382d1b8dd48665a905757478f89de64e10ebec07e101d3f533bda5",
+      "description": "OSSM fixed-point integer reference, N=50, channel-major"
+    }
+  ]
+}
