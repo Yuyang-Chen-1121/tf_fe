@@ -1,6 +1,4 @@
-# 本地仿真数据（文件内容不提交 Git）
-
-将下面 **5 个文件直接放在本目录**，不要再套一层 `coeff` 或 `vectors`。本机已经复制好；从 GitHub 新克隆的机器需要另外传输这些文件。合计 **286714 byte，约 280 KiB**，无需复制整个原始数据集、模型或 Python 训练工程。
+# 本地仿真数据
 
 | 文件名 | 原工程中的来源 | 内容 |
 | --- | --- | --- |
@@ -9,8 +7,6 @@
 | `stream_frames.memh` | `hdl/vectors/stream_frames.memh` | 1000 帧真实输入，每帧 64 个 signed12 样本 |
 | `cwt_stream_golden.memh` | `hdl/vectors/cwt_stream_golden.memh` | CWT 的 20 个整数参考 token，共 6400 byte |
 | `ossm_stream_golden.memh` | `hdl/vectors/ossm_stream_golden.memh` | OSSM 的 20 个整数参考 token，共 6400 byte |
-
-`../tb/data_manifest.json` 记录每个文件的 SHA-256、长度和来源。不要混用旧版 24-bit 核、旧版 gain 或其他平均长度的 golden。检查命令（在 `syn` 下）：
 
 ```sh
 python run_testbench.py --check-data-only
@@ -26,4 +22,3 @@ python run_testbench.py --check-data-only
 
 参考输出来自原工程 Python **定点整数**连续流模型，平均长度为 50，从第一个输入样本开始累计。它用于要求逐字节完全一致，不是浮点 FE 直接量化后的误差参考。原始生成入口是 `hdl/tools/export_stream_vectors.py`，生成过程需要原工程，但本 testbench 的重放过程不需要。
 
-本目录除本说明外的全部内容均由 `../.gitignore` 排除。只运行 CWT 时只需要公共输入及 CWT 两个文件；只运行 OSSM 时同理。
