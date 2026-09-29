@@ -1,0 +1,10 @@
+common/fe_config_store.v
+common/fe_stream_control.v
+common/fe_input_affine.v
+common/fe_output_quant.v
+common/fe_token_output.v
+common/fe_round.v
+common/fe_storage.v
+CWT/fe_cwt_mac.v
+CWT/fe_sqrt.v
+CWT/cwt_feature_engine.v
